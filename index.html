@@ -80,7 +80,7 @@
 
     <script>
         function updateDisplay() {
-            fetch('https://shared-number.onrender.com')
+            fetch('https://shared-number.onrender.com/number')
                 .then(res => res.json())
                 .then(data => {
                     const output = document.getElementById('output');
@@ -123,6 +123,7 @@
         updateDisplay();
         setInterval(updateDisplay, 60 * 1000); // Refresh every minute
     </script>
+
 </body>
 
 </html>
