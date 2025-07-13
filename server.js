@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 
@@ -19,8 +19,8 @@ function getCurrentSlotKey() {
 
 app.get("/number", (req, res) => {
   const key = getCurrentSlotKey();
-
   const currentHour = new Date().getHours();
+
   if (currentHour < 9 || currentHour >= 21) {
     return res.json({ error: "Number only available between 9am to 9pm" });
   }
@@ -31,6 +31,11 @@ app.get("/number", (req, res) => {
   }
 
   res.json({ number: slotNumbers[key] });
+});
+
+// ✅ Add this route so homepage doesn't say "Cannot GET /"
+app.get("/", (req, res) => {
+  res.send("✅ Shared Number Server is running!");
 });
 
 app.listen(PORT, () => {
