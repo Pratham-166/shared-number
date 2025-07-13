@@ -80,7 +80,7 @@
 
     <script>
         function updateDisplay() {
-            fetch('http://localhost:3000/number')
+            fetch('https://shared-number.onrender.com')
                 .then(res => res.json())
                 .then(data => {
                     const output = document.getElementById('output');
