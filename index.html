@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Shared Random Number</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f3f4f6;
+            color: #111827;
+            margin: 0;
+            padding: 2rem;
+        }
+
+        header {
+            background-color: #1f2937;
+            color: #fff;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+        }
+
+        .number {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #2563eb;
+            margin-top: 1rem;
+        }
+
+        .history {
+            margin-top: 2rem;
+        }
+
+        .history-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .history-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .history-list li {
+            background: #e0e7ff;
+            padding: 0.5rem 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 8px;
+        }
+
+        footer {
+            margin-top: 3rem;
+            padding-top: 1rem;
+            border-top: 1px solid #ccc;
+            font-size: 0.9rem;
+            color: #6b7280;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Shared Number (Every 20 Minutes)</h1>
+    </header>
+
+    <main>
+        <div id="output">Loading number...</div>
+
+        <div class="history" id="historyContainer" style="display: none;">
+            <div class="history-title">Last 3 Numbers</div>
+            <ul class="history-list" id="historyList"></ul>
+        </div>
+    </main>
+
+    <footer>
+        &copy; 2025 Your Name. All rights reserved.
+    </footer>
+
+    <script>
+        function updateDisplay() {
+            fetch('http://localhost:3000/number')
+                .then(res => res.json())
+                .then(data => {
+                    const output = document.getElementById('output');
+                    const historyList = document.getElementById('historyList');
+                    const historyContainer = document.getElementById('historyContainer');
+
+                    if (data.error) {
+                        output.textContent = data.error;
+                        historyContainer.style.display = "none";
+                        return;
+                    }
+
+                    const number = data.number;
+                    output.innerHTML = `Your number is: <span class="number">${number}</span>`;
+
+                    const today = new Date().toISOString().split("T")[0];
+                    const historyKey = `history-${today}`;
+                    let history = JSON.parse(localStorage.getItem(historyKey)) || [];
+
+                    if (history.length === 0 || history[history.length - 1] !== number) {
+                        history.push(number);
+                        if (history.length > 3) history = history.slice(-3);
+                        localStorage.setItem(historyKey, JSON.stringify(history));
+                    }
+
+                    historyList.innerHTML = '';
+                    [...history].reverse().forEach(num => {
+                        const li = document.createElement('li');
+                        li.textContent = `Previous Number: ${num}`;
+                        historyList.appendChild(li);
+                    });
+
+                    historyContainer.style.display = "block";
+                })
+                .catch(() => {
+                    document.getElementById('output').textContent = 'Error connecting to server.';
+                });
+        }
+
+        updateDisplay();
+        setInterval(updateDisplay, 60 * 1000); // Refresh every minute
+    </script>
+</body>
+
+</html>
