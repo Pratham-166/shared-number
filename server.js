@@ -7,24 +7,35 @@ app.use(cors());
 
 const slotNumbers = {};
 
-function getCurrentSlotKey() {
+// 🔁 Function to calculate IST slot key
+function getCurrentSlotKeyIST() {
   const now = new Date();
-  const hour = now.getHours();
-  const minute = now.getMinutes();
-  const slot = minute < 20 ? "00" : minute < 40 ? "20" : "40";
+  const utcHour = now.getUTCHours();
+  const utcMinute = now.getUTCMinutes();
+
+  // Convert UTC to IST (+5:30)
+  const totalMinutes = utcHour * 60 + utcMinute + 330; // 330 = 5*60 + 30
+  const istHour = Math.floor(totalMinutes / 60) % 24;
+  const istMinute = totalMinutes % 60;
+
+  const slot = istMinute < 20 ? "00" : istMinute < 40 ? "20" : "40";
   const date = now.toISOString().split("T")[0];
-  const time = `${String(hour).padStart(2, "0")}:${slot}`;
-  return `${date}-${time}`;
+  const time = `${String(istHour).padStart(2, "0")}:${slot}`;
+  return { key: `${date}-${time}`, istHour };
 }
 
+// 📦 Endpoint to get the shared number
 app.get("/number", (req, res) => {
-  const key = getCurrentSlotKey();
-  const currentHour = new Date().getHours();
+  const { key, istHour } = getCurrentSlotKeyIST();
 
-  if (currentHour < 9 || currentHour >= 21) {
-    return res.json({ error: "Number only available between 9am to 9pm" });
+  // ✅ Only allow access from 9am to 9pm IST
+  if (istHour < 9 || istHour >= 21) {
+    return res.json({
+      error: "Number only available between 9am to 9pm (IST)",
+    });
   }
 
+  // 🎲 Generate a random 2-digit number if not already set
   if (!slotNumbers[key]) {
     const random = Math.floor(Math.random() * 100);
     slotNumbers[key] = String(random).padStart(2, "0");
@@ -33,11 +44,12 @@ app.get("/number", (req, res) => {
   res.json({ number: slotNumbers[key] });
 });
 
-// ✅ Add this route so homepage doesn't say "Cannot GET /"
+// 🔄 Home route (optional)
 app.get("/", (req, res) => {
   res.send("✅ Shared Number Server is running!");
 });
 
+// 🚀 Start server
 app.listen(PORT, () => {
   console.log(`✅ Server running at http://localhost:${PORT}`);
 });
