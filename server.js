@@ -7,8 +7,8 @@ app.use(cors());
 
 const slotNumbers = {};
 
-// 🔁 Function to calculate IST slot key
-function getCurrentSlotKeyIST() {
+// 🔁 Function to calculate IST slot key and IST hour
+function getCurrentSlotInfoIST() {
   const now = new Date();
   const utcHour = now.getUTCHours();
   const utcMinute = now.getUTCMinutes();
@@ -21,21 +21,19 @@ function getCurrentSlotKeyIST() {
   const slot = istMinute < 20 ? "00" : istMinute < 40 ? "20" : "40";
   const date = now.toISOString().split("T")[0];
   const time = `${String(istHour).padStart(2, "0")}:${slot}`;
-  return { key: `${date}-${time}`, istHour };
+  return { key: `${date}-${time}`, istHour, date, time };
 }
 
-// 📦 Endpoint to get the shared number
+// 📦 /number endpoint: generates and returns number
 app.get("/number", (req, res) => {
-  const { key, istHour } = getCurrentSlotKeyIST();
+  const { key, istHour } = getCurrentSlotInfoIST();
 
-  // ✅ Only allow access from 9am to 9pm IST
   if (istHour < 9 || istHour >= 21) {
     return res.json({
       error: "Number only available between 9am to 9pm (IST)",
     });
   }
 
-  // 🎲 Generate a random 2-digit number if not already set
   if (!slotNumbers[key]) {
     const random = Math.floor(Math.random() * 100);
     slotNumbers[key] = String(random).padStart(2, "0");
@@ -44,12 +42,26 @@ app.get("/number", (req, res) => {
   res.json({ number: slotNumbers[key] });
 });
 
-// 🔄 Home route (optional)
+// 📜 /history endpoint: returns all numbers for today
+app.get("/history", (req, res) => {
+  const { date } = getCurrentSlotInfoIST();
+  const todayHistory = {};
+
+  Object.keys(slotNumbers).forEach((fullKey) => {
+    if (fullKey.startsWith(date)) {
+      const time = fullKey.split("-")[1]; // get HH:MM part
+      todayHistory[time] = slotNumbers[fullKey];
+    }
+  });
+
+  res.json(todayHistory);
+});
+
+// 🏠 home route
 app.get("/", (req, res) => {
   res.send("✅ Shared Number Server is running!");
 });
 
-// 🚀 Start server
 app.listen(PORT, () => {
   console.log(`✅ Server running at http://localhost:${PORT}`);
 });
