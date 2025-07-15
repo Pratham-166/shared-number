@@ -69,7 +69,7 @@
         <div id="output">Loading number...</div>
 
         <div class="history" id="historyContainer" style="display: none;">
-            <div class="history-title">Last 3 Numbers</div>
+            <div class="history-title">Today’s Full Number History</div>
             <ul class="history-list" id="historyList"></ul>
         </div>
     </main>
@@ -84,46 +84,55 @@
                 .then(res => res.json())
                 .then(data => {
                     const output = document.getElementById('output');
-                    const historyList = document.getElementById('historyList');
-                    const historyContainer = document.getElementById('historyContainer');
-
                     if (data.error) {
                         output.textContent = data.error;
-                        historyContainer.style.display = "none";
                         return;
                     }
 
                     const number = data.number;
                     output.innerHTML = `Your number is: <span class="number">${number}</span>`;
-
-                    const today = new Date().toISOString().split("T")[0];
-                    const historyKey = `history-${today}`;
-                    let history = JSON.parse(localStorage.getItem(historyKey)) || [];
-
-                    if (history.length === 0 || history[history.length - 1] !== number) {
-                        history.push(number);
-                        if (history.length > 3) history = history.slice(-3);
-                        localStorage.setItem(historyKey, JSON.stringify(history));
-                    }
-
-                    historyList.innerHTML = '';
-                    [...history].reverse().forEach(num => {
-                        const li = document.createElement('li');
-                        li.textContent = `Previous Number: ${num}`;
-                        historyList.appendChild(li);
-                    });
-
-                    historyContainer.style.display = "block";
                 })
                 .catch(() => {
                     document.getElementById('output').textContent = 'Error connecting to server.';
                 });
         }
 
-        updateDisplay();
-        setInterval(updateDisplay, 60 * 1000); // Refresh every minute
-    </script>
+        function loadFullHistory() {
+            fetch('https://shared-number.onrender.com/history')
+                .then(res => res.json())
+                .then(history => {
+                    const historyList = document.getElementById('historyList');
+                    const historyContainer = document.getElementById('historyContainer');
 
+                    historyList.innerHTML = '';
+
+                    // Sort time slots
+                    const sortedKeys = Object.keys(history).sort();
+
+                    sortedKeys.forEach(time => {
+                        const li = document.createElement('li');
+                        li.textContent = `${time} → ${history[time]}`;
+                        historyList.appendChild(li);
+                    });
+
+                    historyContainer.style.display = "block";
+                })
+                .catch(() => {
+                    const historyList = document.getElementById('historyList');
+                    historyList.innerHTML = '<li>Error loading history</li>';
+                });
+        }
+
+        // Initial load
+        updateDisplay();
+        loadFullHistory();
+
+        // Refresh every minute
+        setInterval(() => {
+            updateDisplay();
+            loadFullHistory();
+        }, 60 * 1000);
+    </script>
 </body>
 
 </html>
