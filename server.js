@@ -1,9 +1,13 @@
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
+
+// ✅ Serve static files from 'public' folder (index.html, history.html, etc.)
+app.use(express.static(path.join(__dirname, "public")));
 
 const slotNumbers = {};
 
@@ -20,7 +24,7 @@ function getSlotInfoIST(dateOverride = null) {
   const slot = istMinute < 20 ? "00" : istMinute < 40 ? "20" : "40";
   const date = new Date(now.getTime() + 330 * 60000)
     .toISOString()
-    .split("T")[0]; // convert to IST date
+    .split("T")[0]; // IST date
   const time = `${String(istHour).padStart(2, "0")}:${slot}`;
 
   return {
@@ -67,12 +71,12 @@ app.get("/history", (req, res) => {
   res.json(dayHistory);
 });
 
-// ✅ Homepage test message
+// ✅ Homepage test message (optional, now index.html is served automatically)
 app.get("/", (req, res) => {
   res.send("✅ Shared Number Server is running!");
 });
 
-// Start server
+// ✅ Start server
 app.listen(PORT, () => {
   console.log(`✅ Server running at http://localhost:${PORT}`);
 });
