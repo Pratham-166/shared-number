@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Full History by Date</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 2rem;
+            background-color: #f9fafb;
+        }
+
+        h1 {
+            color: #1f2937;
+        }
+
+        input[type="date"] {
+            padding: 0.5rem;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        li {
+            background: #e0e7ff;
+            padding: 0.5rem 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>📅 Number History by Date</h1>
+
+    <label for="datePicker">Select date:</label>
+    <input type="date" id="datePicker" />
+
+    <ul id="historyList">Loading...</ul>
+
+    <script>
+        const list = document.getElementById('historyList');
+        const picker = document.getElementById('datePicker');
+
+        function fetchHistory(date) {
+            list.innerHTML = 'Loading...';
+            fetch(`https://shared-number.onrender.com/history?date=${date}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (!data || Object.keys(data).length === 0) {
+                        list.innerHTML = '<li>No data found for selected date.</li>';
+                        return;
+                    }
+
+                    const keys = Object.keys(data).sort();
+                    list.innerHTML = '';
+                    keys.forEach(time => {
+                        const li = document.createElement('li');
+                        li.textContent = `${time} → ${data[time]}`;
+                        list.appendChild(li);
+                    });
+                })
+                .catch(() => {
+                    list.innerHTML = '<li>Error loading history</li>';
+                });
+        }
+
+        function todayISO() {
+            const now = new Date();
+            return now.toISOString().split('T')[0];
+        }
+
+        // Default to today
+        const today = todayISO();
+        picker.value = today;
+        fetchHistory(today);
+
+        picker.addEventListener('change', () => {
+            fetchHistory(picker.value);
+        });
+    </script>
+</body>
+
+</html>
