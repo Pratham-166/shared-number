@@ -106,9 +106,7 @@
 
                     historyList.innerHTML = '';
 
-                    // Sort time slots
                     const sortedKeys = Object.keys(history).sort();
-
                     sortedKeys.forEach(time => {
                         const li = document.createElement('li');
                         li.textContent = `${time} → ${history[time]}`;
@@ -118,16 +116,12 @@
                     historyContainer.style.display = "block";
                 })
                 .catch(() => {
-                    const historyList = document.getElementById('historyList');
-                    historyList.innerHTML = '<li>Error loading history</li>';
+                    document.getElementById('historyList').innerHTML = '<li>Error loading history</li>';
                 });
         }
 
-        // Initial load
         updateDisplay();
         loadFullHistory();
-
-        // Refresh every minute
         setInterval(() => {
             updateDisplay();
             loadFullHistory();
