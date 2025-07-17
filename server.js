@@ -1,33 +1,36 @@
 const express = require("express");
 const cors = require("cors");
-const path = require("path");
 const fs = require("fs");
+const path = require("path");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
+
+// Serve static files from public folder
 app.use(express.static(path.join(__dirname, "public")));
 
-const HISTORY_FILE = path.join(__dirname, "number-history.json");
-
-// Load history from file on startup
+// Load existing number history from file
+const historyFilePath = path.join(__dirname, "number-history.json");
 let slotNumbers = {};
-if (fs.existsSync(HISTORY_FILE)) {
+
+// Load saved history on server start
+if (fs.existsSync(historyFilePath)) {
   try {
-    slotNumbers = JSON.parse(fs.readFileSync(HISTORY_FILE, "utf-8"));
+    const fileData = fs.readFileSync(historyFilePath, "utf8");
+    slotNumbers = JSON.parse(fileData) || {};
   } catch (err) {
-    console.error("Failed to load history:", err);
-    slotNumbers = {};
+    console.error("Failed to parse history file:", err);
   }
 }
 
-// 🔁 Get IST slot info
+// Helper: get IST time slot info
 function getSlotInfoIST(dateOverride = null) {
   const now = dateOverride ? new Date(dateOverride) : new Date();
   const utcHour = now.getUTCHours();
   const utcMinute = now.getUTCMinutes();
 
-  const totalMinutes = utcHour * 60 + utcMinute + 330;
+  const totalMinutes = utcHour * 60 + utcMinute + 330; // UTC + 5h30m
   const istHour = Math.floor(totalMinutes / 60) % 24;
   const istMinute = totalMinutes % 60;
 
@@ -45,14 +48,12 @@ function getSlotInfoIST(dateOverride = null) {
   };
 }
 
-// 🧠 Save to file
-function saveHistoryToFile() {
-  fs.writeFile(HISTORY_FILE, JSON.stringify(slotNumbers, null, 2), (err) => {
-    if (err) console.error("Failed to save history:", err);
-  });
+// Save updated slotNumbers to file
+function saveToFile() {
+  fs.writeFileSync(historyFilePath, JSON.stringify(slotNumbers, null, 2));
 }
 
-// ✅ /number
+// GET /number — current slot number
 app.get("/number", (req, res) => {
   const { key, istHour } = getSlotInfoIST();
 
@@ -65,13 +66,13 @@ app.get("/number", (req, res) => {
   if (!slotNumbers[key]) {
     const random = Math.floor(Math.random() * 100);
     slotNumbers[key] = String(random).padStart(2, "0");
-    saveHistoryToFile(); // persist it
+    saveToFile();
   }
 
   res.json({ number: slotNumbers[key] });
 });
 
-// ✅ /history?date=YYYY-MM-DD
+// GET /history?date=YYYY-MM-DD
 app.get("/history", (req, res) => {
   const queryDate = req.query.date;
   const { date: today } = getSlotInfoIST();
@@ -89,12 +90,24 @@ app.get("/history", (req, res) => {
   res.json(dayHistory);
 });
 
-// ✅ Status page
+// Root route (optional)
 app.get("/", (req, res) => {
   res.send("✅ Shared Number Server is running!");
 });
 
-// 🔥 Start server
+// Auto-generate numbers every minute during 9am–9pm IST
+setInterval(() => {
+  const { key, istHour } = getSlotInfoIST();
+
+  if (istHour >= 9 && istHour < 21 && !slotNumbers[key]) {
+    const random = Math.floor(Math.random() * 100);
+    slotNumbers[key] = String(random).padStart(2, "0");
+    saveToFile();
+    console.log(`✅ Auto-generated ${key} → ${slotNumbers[key]}`);
+  }
+}, 60 * 1000); // every 1 minute
+
+// Start server
 app.listen(PORT, () => {
   console.log(`✅ Server running at http://localhost:${PORT}`);
 });
